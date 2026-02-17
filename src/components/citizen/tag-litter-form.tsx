@@ -42,13 +42,52 @@ export function TagLitterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [location, setLocation] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
+  const handleGetLocation = () => {
+    if ("geolocation" in navigator) {
+      setIsLocating(true);
+      setLocation("Detecting location...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
+          setLocation(newLocation);
+          setIsLocating(false);
+          toast({
+            title: "Location Detected",
+            description: "Your current location has been automatically added to the report.",
+          });
+        },
+        () => {
+          setIsLocating(false);
+          setLocation("Could not get location. Please enable permissions.");
+          toast({
+            variant: "destructive",
+            title: "Location Access Denied",
+            description: "Please enable location permissions in your browser to auto-tag locations.",
+          });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      setLocation("Geolocation is not supported by your browser.");
+       toast({
+          variant: "destructive",
+          title: "Location Not Supported",
+          description: "Your browser does not support geolocation.",
+        });
+    }
+  };
+
   useEffect(() => {
     if (imageDataUri) {
+      handleGetLocation();
       startAnalyzing(async () => {
         const result = await analyzeLitterImage({ photoDataUri: imageDataUri });
         setAiResult(result);
@@ -224,6 +263,8 @@ export function TagLitterForm() {
     setSubmissionStatus("idle");
     setAiResult(null);
     setIsCameraOpen(false);
+    setLocation(null);
+    setIsLocating(false);
     stopCameraStream();
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -381,7 +422,7 @@ export function TagLitterForm() {
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-md text-muted-foreground">
                     <MapPin className="h-5 w-5 text-primary" />
                     <span>
-                      Automatically detected: <strong>Chennai, India</strong>
+                      {isLocating ? "Detecting location..." : (location || "Location will be detected from your browser.")}
                     </span>
                   </div>
                 </div>
@@ -412,5 +453,3 @@ export function TagLitterForm() {
     </form>
   );
 }
-
-    
