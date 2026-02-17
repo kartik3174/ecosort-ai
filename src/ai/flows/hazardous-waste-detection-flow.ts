@@ -7,7 +7,7 @@
  * - WasteAnalysisOutput - The return type for the analyzeWaste function.
  */
 
-import { ai } from '@/ai/genkit';
+import { getAi } from '@/ai/genkit';
 import { z } from 'genkit';
 
 const WasteAnalysisInputSchema = z.object({
@@ -30,20 +30,24 @@ const WasteAnalysisOutputSchema = z.object({
 export type WasteAnalysisOutput = z.infer<typeof WasteAnalysisOutputSchema>;
 
 
-export async function analyzeWaste(
-  input: WasteAnalysisInput
-): Promise<WasteAnalysisOutput> {
+let wasteAnalysisPrompt: any = null;
+let wasteAnalysisFlow: any = null;
+
+async function initializeFlows() {
+  if (wasteAnalysisFlow) {
+    return;
+  }
+
+  const ai = await getAi();
   if (!ai) {
     throw new Error('Genkit AI is not initialized. Please ensure GEMINI_API_KEY or GOOGLE_API_KEY environment variable is set.');
   }
-  return wasteAnalysisFlow(input);
-}
 
-const wasteAnalysisPrompt = ai.definePrompt({
-  name: 'wasteAnalysisPrompt',
-  input: { schema: WasteAnalysisInputSchema },
-  output: { schema: WasteAnalysisOutputSchema },
-  prompt: `You are an expert waste management and recycling analyst. Your task is to analyze the provided image of litter and provide a detailed analysis.
+  wasteAnalysisPrompt = ai.definePrompt({
+    name: 'wasteAnalysisPrompt',
+    input: { schema: WasteAnalysisInputSchema },
+    output: { schema: WasteAnalysisOutputSchema },
+    prompt: `You are an expert waste management and recycling analyst. Your task is to analyze the provided image of litter and provide a detailed analysis.
 
 Based on the image, identify the type of waste, describe the scene for a report, determine if it contains hazardous materials, provide brief disposal or recycling advice, and generate step-by-step cleanup guidelines.
 
@@ -59,19 +63,30 @@ Structure your response as a JSON object matching this schema:
 
 Image: {{media url=photoDataUri}}
 `,
-});
+  });
 
-const wasteAnalysisFlow = ai.defineFlow(
-  {
-    name: 'wasteAnalysisFlow',
-    inputSchema: WasteAnalysisInputSchema,
-    outputSchema: WasteAnalysisOutputSchema,
-  },
-  async (input) => {
-    const { output } = await wasteAnalysisPrompt(input);
-    if (!output) {
-      throw new Error('Failed to get output from waste analysis prompt.');
+  wasteAnalysisFlow = ai.defineFlow(
+    {
+      name: 'wasteAnalysisFlow',
+      inputSchema: WasteAnalysisInputSchema,
+      outputSchema: WasteAnalysisOutputSchema,
+    },
+    async (input) => {
+      const { output } = await wasteAnalysisPrompt(input);
+      if (!output) {
+        throw new Error('Failed to get output from waste analysis prompt.');
+      }
+      return output;
     }
-    return output;
+  );
+}
+
+export async function analyzeWaste(
+  input: WasteAnalysisInput
+): Promise<WasteAnalysisOutput> {
+  await initializeFlows();
+  if (!wasteAnalysisFlow) {
+    throw new Error('Failed to initialize waste analysis flow.');
   }
-);
+  return wasteAnalysisFlow(input);
+}
