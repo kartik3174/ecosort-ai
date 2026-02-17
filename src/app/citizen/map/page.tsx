@@ -1,11 +1,12 @@
 import { PageHeader } from "@/components/shared/page-header";
 import { MapPlaceholder } from "@/components/shared/map-placeholder";
 import { Button } from "@/components/ui/button";
-import { GetDirections, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function MapPage() {
   const filters = ["Still There", "Cleaned", "Hazardous", "Recyclable"];
-  const pinColors = {
+  const pinColors: Record<string, string> = {
       "Still There": "bg-red-500",
       "Cleaned": "bg-green-500",
       "Hazardous": "bg-yellow-500",
