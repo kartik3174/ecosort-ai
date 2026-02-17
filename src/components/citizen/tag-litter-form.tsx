@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   Recycle as RecycleIcon,
   Info,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -333,6 +334,7 @@ export function TagLitterForm() {
                 )}
 
                 {aiResult && !isAnalyzing && (
+                    <>
                     <Alert variant={aiResult.isHazardous ? "destructive" : "default"}>
                         {aiResult.isHazardous ? <ShieldAlert className="h-4 w-4" /> : <Info className="h-4 w-4" />}
                         <AlertTitle>AI Analysis: {aiResult.wasteType}</AlertTitle>
@@ -350,6 +352,18 @@ export function TagLitterForm() {
                             )}
                         </AlertDescription>
                     </Alert>
+                    {aiResult.cleanupGuidelines && (
+                        <Alert variant="default" className="mt-4">
+                            <ClipboardCheck className="h-4 w-4" />
+                            <AlertTitle>Cleanup Guidelines</AlertTitle>
+                            <AlertDescription>
+                                <div className="whitespace-pre-wrap text-sm text-foreground">
+                                    {aiResult.cleanupGuidelines}
+                                </div>
+                            </AlertDescription>
+                        </Alert>
+                    )}
+                    </>
                 )}
                 
                 <div>

@@ -25,6 +25,7 @@ const WasteAnalysisOutputSchema = z.object({
   isHazardous: z.boolean().describe('Whether hazardous waste is detected in the image.'),
   hazardousMaterials: z.array(z.string()).optional().describe('A list of specific hazardous materials identified, if any.'),
   recyclingInstructions: z.string().optional().describe('Brief instructions on how to properly dispose of or recycle the waste, if applicable.'),
+  cleanupGuidelines: z.string().describe('Step-by-step guidelines on how to safely and effectively clean the area shown in the image. This should be formatted as a numbered list.'),
 });
 export type WasteAnalysisOutput = z.infer<typeof WasteAnalysisOutputSchema>;
 
@@ -41,7 +42,7 @@ const wasteAnalysisPrompt = ai.definePrompt({
   output: { schema: WasteAnalysisOutputSchema },
   prompt: `You are an expert waste management and recycling analyst. Your task is to analyze the provided image of litter and provide a detailed analysis.
 
-Based on the image, identify the type of waste, describe the scene for a report, determine if it contains hazardous materials, and provide brief disposal or recycling advice.
+Based on the image, identify the type of waste, describe the scene for a report, determine if it contains hazardous materials, provide brief disposal or recycling advice, and generate step-by-step cleanup guidelines.
 
 Structure your response as a JSON object matching this schema:
 {
@@ -49,7 +50,8 @@ Structure your response as a JSON object matching this schema:
   "description": string, // A detailed, objective description of the litter seen in the image for a report.
   "isHazardous": boolean, // true if hazardous waste is detected, false otherwise.
   "hazardousMaterials": string[], // List of hazardous materials, if any.
-  "recyclingInstructions": string // Brief, actionable advice on how to recycle or dispose of this waste.
+  "recyclingInstructions": string, // Brief, actionable advice on how to recycle or dispose of this waste.
+  "cleanupGuidelines": string // Step-by-step guidelines on how to safely and effectively clean the area. Use a numbered list format with newlines.
 }
 
 Image: {{media url=photoDataUri}}
