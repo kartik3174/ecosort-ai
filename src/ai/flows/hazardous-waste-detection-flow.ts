@@ -33,6 +33,9 @@ export type WasteAnalysisOutput = z.infer<typeof WasteAnalysisOutputSchema>;
 export async function analyzeWaste(
   input: WasteAnalysisInput
 ): Promise<WasteAnalysisOutput> {
+  if (!ai) {
+    throw new Error('Genkit AI is not initialized. Please ensure GEMINI_API_KEY or GOOGLE_API_KEY environment variable is set.');
+  }
   return wasteAnalysisFlow(input);
 }
 
