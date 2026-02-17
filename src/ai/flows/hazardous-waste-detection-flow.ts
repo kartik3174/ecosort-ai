@@ -1,53 +1,43 @@
 'use server';
 /**
- * @fileOverview A Genkit flow for analyzing waste from an image.
+ * @fileOverview Direct Gemini API calls for analyzing waste from an image.
  *
  * - analyzeWaste - A function that analyzes waste from a photo.
  * - WasteAnalysisInput - The input type for the analyzeWaste function.
  * - WasteAnalysisOutput - The return type for the analyzeWaste function.
  */
 
-import { getAi } from '@/ai/genkit';
-import { z } from 'genkit';
+export interface WasteAnalysisInput {
+  photoDataUri: string;
+}
 
-const WasteAnalysisInputSchema = z.object({
-  photoDataUri: z
-    .string()
-    .describe(
-      "A photo of litter, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-});
-export type WasteAnalysisInput = z.infer<typeof WasteAnalysisInputSchema>;
+export interface WasteAnalysisOutput {
+  wasteType: string;
+  description: string;
+  isHazardous: boolean;
+  hazardousMaterials?: string[];
+  recyclingInstructions?: string;
+  cleanupGuidelines: string[];
+}
 
-const WasteAnalysisOutputSchema = z.object({
-  wasteType: z.string().describe('The primary type of waste identified in the image (e.g., "Plastic Bottles", "Food Scraps", "Electronic Waste", "Mixed General Waste").'),
-  description: z.string().describe('A detailed description of the litter and its context in the image. This should be suitable for a report and be written in a neutral, objective tone.'),
-  isHazardous: z.boolean().describe('Whether hazardous waste is detected in the image.'),
-  hazardousMaterials: z.array(z.string()).optional().describe('A list of specific hazardous materials identified, if any.'),
-  recyclingInstructions: z.string().optional().describe('Brief instructions on how to properly dispose of or recycle the waste, if applicable.'),
-  cleanupGuidelines: z.array(z.string()).describe('An array of strings, with each string being a step-by-step guideline on how to safely clean the area.'),
-});
-export type WasteAnalysisOutput = z.infer<typeof WasteAnalysisOutputSchema>;
+export async function analyzeWaste(
+  input: WasteAnalysisInput
+): Promise<WasteAnalysisOutput> {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
-
-let wasteAnalysisPrompt: any = null;
-let wasteAnalysisFlow: any = null;
-
-async function initializeFlows() {
-  if (wasteAnalysisFlow) {
-    return;
-  }
-
-  const ai = await getAi();
-  if (!ai) {
+  if (!apiKey) {
     throw new Error('Genkit AI is not initialized. Please ensure GEMINI_API_KEY or GOOGLE_API_KEY environment variable is set.');
   }
 
-  wasteAnalysisPrompt = ai.definePrompt({
-    name: 'wasteAnalysisPrompt',
-    input: { schema: WasteAnalysisInputSchema },
-    output: { schema: WasteAnalysisOutputSchema },
-    prompt: `You are an expert waste management and recycling analyst. Your task is to analyze the provided image of litter and provide a detailed analysis.
+  // Extract the base64 data from the data URI
+  const match = input.photoDataUri.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error('Invalid image data URI format');
+  }
+
+  const [, mimeType, base64Data] = match;
+
+  const prompt = `You are an expert waste management and recycling analyst. Your task is to analyze the provided image of litter and provide a detailed analysis.
 
 Based on the image, identify the type of waste, describe the scene for a report, determine if it contains hazardous materials, provide brief disposal or recycling advice, and generate step-by-step cleanup guidelines.
 
@@ -59,34 +49,64 @@ Structure your response as a JSON object matching this schema:
   "hazardousMaterials": string[], // List of hazardous materials, if any.
   "recyclingInstructions": string, // Brief, actionable advice on how to recycle or dispose of this waste.
   "cleanupGuidelines": string[] // An array of strings, with each string being a step-by-step guideline on how to safely clean the area.
-}
+}`;
 
-Image: {{media url=photoDataUri}}
-`,
-  });
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt,
+              },
+              {
+                inlineData: {
+                  mimeType,
+                  data: base64Data,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
 
-  wasteAnalysisFlow = ai.defineFlow(
-    {
-      name: 'wasteAnalysisFlow',
-      inputSchema: WasteAnalysisInputSchema,
-      outputSchema: WasteAnalysisOutputSchema,
-    },
-    async (input) => {
-      const { output } = await wasteAnalysisPrompt(input);
-      if (!output) {
-        throw new Error('Failed to get output from waste analysis prompt.');
-      }
-      return output;
+    // Check if the status indicates success
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Gemini API error:', errorData);
+      throw new Error(`API request failed: ${response.statusText}`);
     }
-  );
-}
 
-export async function analyzeWaste(
-  input: WasteAnalysisInput
-): Promise<WasteAnalysisOutput> {
-  await initializeFlows();
-  if (!wasteAnalysisFlow) {
-    throw new Error('Failed to initialize waste analysis flow.');
+    const data = (await response.json()) as {
+      candidates?: Array<{
+        content?: {
+          parts?: Array<{ text?: string }>;
+        };
+      }>;
+    };
+
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) {
+      throw new Error('No content in API response');
+    }
+
+    // Parse the JSON response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Could not parse JSON from API response');
+    }
+
+    const result = JSON.parse(jsonMatch[0]) as WasteAnalysisOutput;
+    return result;
+  } catch (error) {
+    console.error('Error calling Gemini API:', error);
+    throw error;
   }
-  return wasteAnalysisFlow(input);
 }
