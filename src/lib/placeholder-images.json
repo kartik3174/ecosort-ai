@@ -9,7 +9,7 @@
     {
       "id": "map-placeholder",
       "description": "A realistic map of Chennai showing roads and areas.",
-      "imageUrl": "https://images.unsplash.com/photo-1623930441253-5964703701a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxDaGVubmFpJTIwbWFwfGVufDB8fHx8MTc3MTMyNDY5OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageUrl": "https://picsum.photos/seed/chennaimap/1200/800",
       "imageHint": "Chennai map"
     }
   ]
