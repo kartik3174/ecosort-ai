@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   Camera,
@@ -343,7 +342,7 @@ export function TagLitterForm() {
               </div>
             ) : (
               <div className="relative w-full aspect-video rounded-lg overflow-hidden border">
-                <Image src={imagePreview} alt="Litter preview" layout="fill" objectFit="cover" />
+                <img src={imagePreview} alt="Litter preview" className="w-full h-full object-cover" />
                 {isAnalyzing && (
                   <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-white" />
