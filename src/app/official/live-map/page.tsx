@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { PageHeader } from "@/components/shared/page-header";
 import { GoogleMap } from "@/components/shared/google-map";
 import { Button } from "@/components/ui/button";
+import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mapReportsData, type MapReport } from "@/lib/data";
 
@@ -38,26 +39,39 @@ export default function LiveMapPage() {
     );
   }, [activeFilters]);
 
+  const handleGetDirections = () => {
+    if (selectedReport) {
+      const { lat, lng } = selectedReport;
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+      window.open(url, "_blank");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <PageHeader
         title="Live Litter Map"
         description="Monitor all reports across the city and identify high-density zones."
       />
-      <div className="flex flex-wrap gap-4 mb-4">
-        {filters.map((filter) => (
-          <Button
-            key={filter}
-            variant={activeFilters.includes(filter) ? "default" : "outline"}
-            onClick={() => handleFilterClick(filter)}
-            className="transition-colors"
-          >
-            <span
-              className={cn("w-3 h-3 rounded-full mr-2", pinColors[filter])}
-            ></span>
-            {filter}
-          </Button>
-        ))}
+      <div className="flex flex-wrap gap-4 mb-4 items-center">
+        <div className="flex flex-wrap gap-2">
+          {filters.map((filter) => (
+            <Button
+              key={filter}
+              variant={activeFilters.includes(filter) ? "default" : "outline"}
+              onClick={() => handleFilterClick(filter)}
+              className="transition-colors"
+            >
+              <span
+                className={cn("w-3 h-3 rounded-full mr-2", pinColors[filter])}
+              ></span>
+              {filter}
+            </Button>
+          ))}
+        </div>
+        <Button onClick={handleGetDirections} disabled={!selectedReport}>
+          <MapPin /> Get Directions
+        </Button>
       </div>
       <div className="flex-1">
         <GoogleMap
