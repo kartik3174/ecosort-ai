@@ -39,7 +39,6 @@ const wasteAnalysisPrompt = ai.definePrompt({
   name: 'wasteAnalysisPrompt',
   input: { schema: WasteAnalysisInputSchema },
   output: { schema: WasteAnalysisOutputSchema },
-  model: 'googleai/gemini-2.5-flash-image',
   prompt: `You are an expert waste management and recycling analyst. Your task is to analyze the provided image of litter and provide a detailed analysis.
 
 Based on the image, identify the type of waste, describe the scene for a report, determine if it contains hazardous materials, and provide brief disposal or recycling advice.
