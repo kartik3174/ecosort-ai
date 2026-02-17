@@ -87,7 +87,6 @@ export function TagLitterForm() {
 
   useEffect(() => {
     if (imageDataUri) {
-      handleGetLocation();
       startAnalyzing(async () => {
         const result = await analyzeLitterImage({ photoDataUri: imageDataUri });
         setAiResult(result);
@@ -176,6 +175,7 @@ export function TagLitterForm() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      handleGetLocation();
       const reader = new FileReader();
       reader.onload = (e) => {
         setImagePreview(e.target?.result as string);
@@ -216,6 +216,7 @@ export function TagLitterForm() {
         const dataUri = canvas.toDataURL("image/jpeg");
         setImagePreview(dataUri);
         setImageDataUri(dataUri);
+        handleGetLocation();
       }
       handleCancelCamera();
     }
