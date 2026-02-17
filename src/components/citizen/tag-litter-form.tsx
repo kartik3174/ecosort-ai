@@ -37,7 +37,10 @@ export function TagLitterForm() {
   const [aiResult, setAiResult] = useState<DetectHazardousWasteOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,6 +59,56 @@ export function TagLitterForm() {
       });
     }
   }, [imageDataUri, toast]);
+
+  useEffect(() => {
+    if (!isCameraOpen) {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      return;
+    }
+
+    const getCameraPermission = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          variant: "destructive",
+          title: "Camera Not Supported",
+          description: "Your browser does not support camera access.",
+        });
+        setHasCameraPermission(false);
+        setIsCameraOpen(false);
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        setHasCameraPermission(true);
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        setHasCameraPermission(false);
+        setIsCameraOpen(false);
+        toast({
+          variant: "destructive",
+          title: "Camera Access Denied",
+          description: "Please enable camera permissions in your browser settings to use this app.",
+        });
+      }
+    };
+
+    getCameraPermission();
+
+    return () => {
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [isCameraOpen, toast]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -77,7 +130,28 @@ export function TagLitterForm() {
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-  
+
+  const handleCapturePhotoClick = () => {
+    setIsCameraOpen(true);
+  };
+
+  const handleTakePicture = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement("canvas");
+      const video = videoRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL("image/jpeg");
+        setImagePreview(dataUri);
+        setImageDataUri(dataUri);
+      }
+      setIsCameraOpen(false);
+    }
+  };
+
   const handleTagSelect = (selectedTag: Tag) => {
     setTag(selectedTag);
   };
@@ -119,6 +193,7 @@ export function TagLitterForm() {
     setTag(null);
     setSubmissionStatus("idle");
     setAiResult(null);
+    setIsCameraOpen(false);
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -161,14 +236,36 @@ export function TagLitterForm() {
       <Card>
         <CardContent className="p-6 grid md:grid-cols-2 gap-8 items-start">
           <div>
-            {!imagePreview ? (
+            {isCameraOpen ? (
+              <div className="relative w-full aspect-video border-2 border-dashed border-muted-foreground/50 rounded-lg flex flex-col items-center justify-center text-center p-4 bg-black">
+                <video ref={videoRef} className="w-full h-full rounded-md object-cover" autoPlay muted playsInline />
+                {hasCameraPermission === false && (
+                  <Alert variant="destructive" className="absolute bottom-20 left-4 right-4 w-auto z-10">
+                    <AlertTitle>Camera Access Required</AlertTitle>
+                    <AlertDescription>Please allow camera access to use this feature.</AlertDescription>
+                  </Alert>
+                )}
+                <div className="absolute bottom-4 flex gap-4 z-10">
+                  <Button type="button" onClick={handleTakePicture} disabled={!hasCameraPermission}>
+                    <Camera /> Take Picture
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={() => setIsCameraOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : !imagePreview ? (
               <div className="relative w-full aspect-video border-2 border-dashed border-muted-foreground/50 rounded-lg flex flex-col items-center justify-center text-center p-4">
                 <Camera className="h-12 w-12 text-muted-foreground mb-2" />
                 <h3 className="font-semibold mb-2">Large Photo Capture Area</h3>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
                 <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                  <Button type="button" onClick={handleUploadClick}><Upload /> Upload Photo</Button>
-                  <Button type="button" variant="secondary" disabled><Camera /> Capture Photo</Button>
+                  <Button type="button" onClick={handleUploadClick}>
+                    <Upload /> Upload Photo
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={handleCapturePhotoClick}>
+                    <Camera /> Capture Photo
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -179,8 +276,8 @@ export function TagLitterForm() {
                     <Loader2 className="h-8 w-8 animate-spin text-white" />
                   </div>
                 )}
-                 <Button type="button" variant="destructive" size="sm" onClick={resetForm} className="absolute top-2 right-2 z-10">
-                  <Trash2 className="h-4 w-4 mr-2"/> Change Photo
+                <Button type="button" variant="destructive" size="sm" onClick={resetForm} className="absolute top-2 right-2 z-10">
+                  <Trash2 className="h-4 w-4 mr-2" /> Change Photo
                 </Button>
               </div>
             )}
@@ -189,15 +286,21 @@ export function TagLitterForm() {
             {imagePreview && (
               <>
                 <div>
-                    <h3 className="font-semibold mb-3 text-lg">Tag Litter</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                    {tagOptions.map(opt => (
-                        <Button key={opt.id} type="button" variant={tag === opt.id ? opt.variant : 'outline'} onClick={() => handleTagSelect(opt.id)} className={cn("justify-start h-12", tag === opt.id && 'ring-2 ring-primary')}>
-                            <opt.icon className="h-5 w-5 mr-2" />
-                            <span>{opt.label}</span>
-                        </Button>
+                  <h3 className="font-semibold mb-3 text-lg">Tag Litter</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {tagOptions.map((opt) => (
+                      <Button
+                        key={opt.id}
+                        type="button"
+                        variant={tag === opt.id ? opt.variant : "outline"}
+                        onClick={() => handleTagSelect(opt.id)}
+                        className={cn("justify-start h-12", tag === opt.id && "ring-2 ring-primary")}
+                      >
+                        <opt.icon className="h-5 w-5 mr-2" />
+                        <span>{opt.label}</span>
+                      </Button>
                     ))}
-                    </div>
+                  </div>
                 </div>
 
                 {aiResult && aiResult.isHazardous && (
@@ -207,9 +310,13 @@ export function TagLitterForm() {
                     <AlertDescription>
                       {aiResult.reasoning}
                       {aiResult.hazardousMaterials && aiResult.hazardousMaterials.length > 0 && (
-                          <div className="mt-2">
-                              {aiResult.hazardousMaterials.map(mat => <Badge key={mat} variant="destructive" className="mr-1">{mat}</Badge>)}
-                          </div>
+                        <div className="mt-2">
+                          {aiResult.hazardousMaterials.map((mat) => (
+                            <Badge key={mat} variant="destructive" className="mr-1">
+                              {mat}
+                            </Badge>
+                          ))}
+                        </div>
                       )}
                     </AlertDescription>
                   </Alert>
@@ -219,7 +326,9 @@ export function TagLitterForm() {
                   <h3 className="font-semibold mb-2">Location</h3>
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-md text-muted-foreground">
                     <MapPin className="h-5 w-5 text-primary" />
-                    <span>Automatically detected: <strong>Chennai, India</strong></span>
+                    <span>
+                      Automatically detected: <strong>Chennai, India</strong>
+                    </span>
                   </div>
                 </div>
 
@@ -231,7 +340,7 @@ export function TagLitterForm() {
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-                
+
                 <Button type="submit" size="lg" disabled={isSubmitting || isAnalyzing || !tag}>
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
