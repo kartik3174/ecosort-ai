@@ -22,6 +22,26 @@ export const myReportsData = [
   { id: "REP005", location: "Vandalur Zoo Entrance", status: "Pending", date: "2024-05-24" },
 ];
 
+export type MapReport = {
+  id: string;
+  location: string;
+  status: string;
+  date: string;
+  lat: number;
+  lng: number;
+  category: "Still There" | "Cleaned" | "Hazardous" | "Recyclable";
+};
+
+export const mapReportsData: MapReport[] = [
+  { id: "REP001", location: "Marina Beach", status: "Cleaned", date: "2024-05-20", lat: 13.0545, lng: 80.2828, category: "Cleaned" },
+  { id: "REP002", location: "T. Nagar Market", status: "In Progress", date: "2024-05-22", lat: 13.0400, lng: 80.2312, category: "Still There" },
+  { id: "REP003", location: "Guindy National Park", status: "Pending", date: "2024-05-23", lat: 13.0075, lng: 80.2100, category: "Hazardous" },
+  { id: "REP004", location: "Besant Nagar Beach", status: "Cleaned", date: "2024-05-18", lat: 13.0010, lng: 80.2700, category: "Cleaned" },
+  { id: "REP005", location: "Vandalur Zoo Entrance", status: "Pending", date: "2024-05-24", lat: 12.8791, lng: 80.0825, category: "Recyclable" },
+  { id: "REP006", location: "Mylapore Tank", status: "Pending", date: "2024-05-25", lat: 13.0335, lng: 80.2697, category: "Still There" },
+  { id: "REP007", location: "Velachery Main Road", status: "In Progress", date: "2024-05-25", lat: 12.9791, lng: 80.2181, category: "Hazardous" },
+];
+
 export const allReportsData = [
   { id: "REP301", location: "Adyar River Bank", status: "Pending", priority: "High", time: "2 hours ago", image: "https://picsum.photos/seed/301/200/150", wasteType: "Hazardous" },
   { id: "REP302", location: "Mylapore Tank", status: "Pending", priority: "Medium", time: "5 hours ago", image: "https://picsum.photos/seed/302/200/150", wasteType: "Recyclable" },
