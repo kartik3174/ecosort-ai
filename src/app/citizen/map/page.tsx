@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/shared/page-header";
-import { MapPlaceholder } from "@/components/shared/map-placeholder";
+import { GoogleMap } from "@/components/shared/google-map";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,7 @@ export default function MapPage() {
             <MapPin /> Get Directions
         </Button>
       </div>
-      <MapPlaceholder />
+      <GoogleMap />
     </div>
   );
 }

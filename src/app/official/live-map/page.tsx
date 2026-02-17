@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/shared/page-header";
-import { MapPlaceholder } from "@/components/shared/map-placeholder";
+import { GoogleMap } from "@/components/shared/google-map";
 import { Button } from "@/components/ui/button";
 
 export default function LiveMapPage() {
@@ -19,7 +19,7 @@ export default function LiveMapPage() {
         ))}
       </div>
       <div className="flex-1">
-        <MapPlaceholder showHeatmap={true} />
+        <GoogleMap />
       </div>
     </div>
   );
