@@ -22,7 +22,7 @@ export async function analyzeLitterImage(
       recyclingInstructions:
         "Could not determine waste type.",
       hazardousMaterials: [],
-      cleanupGuidelines: "Could not generate cleanup guidelines as the analysis failed.",
+      cleanupGuidelines: ["Could not generate cleanup guidelines as the analysis failed."],
     };
   }
 }

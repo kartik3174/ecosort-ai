@@ -25,7 +25,7 @@ const WasteAnalysisOutputSchema = z.object({
   isHazardous: z.boolean().describe('Whether hazardous waste is detected in the image.'),
   hazardousMaterials: z.array(z.string()).optional().describe('A list of specific hazardous materials identified, if any.'),
   recyclingInstructions: z.string().optional().describe('Brief instructions on how to properly dispose of or recycle the waste, if applicable.'),
-  cleanupGuidelines: z.string().describe('Step-by-step guidelines on how to safely and effectively clean the area shown in the image. This should be formatted as a numbered list.'),
+  cleanupGuidelines: z.array(z.string()).describe('An array of strings, with each string being a step-by-step guideline on how to safely clean the area.'),
 });
 export type WasteAnalysisOutput = z.infer<typeof WasteAnalysisOutputSchema>;
 
@@ -51,7 +51,7 @@ Structure your response as a JSON object matching this schema:
   "isHazardous": boolean, // true if hazardous waste is detected, false otherwise.
   "hazardousMaterials": string[], // List of hazardous materials, if any.
   "recyclingInstructions": string, // Brief, actionable advice on how to recycle or dispose of this waste.
-  "cleanupGuidelines": string // Step-by-step guidelines on how to safely and effectively clean the area. Use a numbered list format with newlines.
+  "cleanupGuidelines": string[] // An array of strings, with each string being a step-by-step guideline on how to safely clean the area.
 }
 
 Image: {{media url=photoDataUri}}

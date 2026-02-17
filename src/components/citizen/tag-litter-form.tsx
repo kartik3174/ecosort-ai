@@ -69,72 +69,70 @@ export function TagLitterForm() {
   }, [imageDataUri]);
 
   useEffect(() => {
-    const stopCameraStream = () => {
+    return () => {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
-        streamRef.current = null;
       }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-    };
-
-    const startCameraStream = async () => {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        toast({
-          variant: "destructive",
-          title: "Camera Not Supported",
-          description: "Your browser does not support camera access.",
-        });
-        setHasCameraPermission(false);
-        setIsCameraOpen(false);
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        streamRef.current = stream;
-        setHasCameraPermission(true);
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      } catch (error: any) {
-        console.error("Error accessing camera:", error);
-        setHasCameraPermission(false);
-        setIsCameraOpen(false);
-        
-        let title = "Camera Error";
-        let description = "An unexpected error occurred while accessing the camera.";
-
-        if (error.name === 'NotAllowedError') {
-            title = "Camera Access Denied";
-            description = "Please enable camera permissions in your browser settings to use this feature.";
-        } else if (error.name === 'NotFoundError') {
-            title = "No Camera Found";
-            description = "We couldn't find a camera on your device. Please connect a camera and try again.";
-        } else if (error.name === 'NotReadableError') {
-            title = "Could Not Access Camera";
-            description = "Could not start video source. The camera might be in use by another application or there might be a hardware issue.";
-        }
-
-        toast({
-          variant: "destructive",
-          title: title,
-          description: description,
-        });
-      }
-    };
-
-    if (isCameraOpen) {
-      startCameraStream();
-    } else {
-      stopCameraStream();
     }
+  }, []);
 
-    return () => {
-      stopCameraStream();
-    };
-  }, [isCameraOpen, toast]);
+  const stopCameraStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const startCameraStream = async () => {
+    stopCameraStream(); // Ensure any existing stream is stopped
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast({
+        variant: "destructive",
+        title: "Camera Not Supported",
+        description: "Your browser does not support camera access.",
+      });
+      setHasCameraPermission(false);
+      setIsCameraOpen(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
+      setHasCameraPermission(true);
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error: any) {
+      console.error("Error accessing camera:", error);
+      setHasCameraPermission(false);
+      setIsCameraOpen(false);
+      
+      let title = "Camera Error";
+      let description = "An unexpected error occurred while accessing the camera.";
+
+      if (error.name === 'NotAllowedError') {
+          title = "Camera Access Denied";
+          description = "Please enable camera permissions in your browser settings to use this feature.";
+      } else if (error.name === 'NotFoundError') {
+          title = "No Camera Found";
+          description = "We couldn't find a camera on your device. Please connect a camera and try again.";
+      } else if (error.name === 'NotReadableError') {
+          title = "Could Not Access Camera";
+          description = "Could not start video source. The camera might be in use by another application or there might be a hardware issue.";
+      }
+
+      toast({
+        variant: "destructive",
+        title: title,
+        description: description,
+      });
+    }
+  };
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -159,7 +157,13 @@ export function TagLitterForm() {
 
   const handleCapturePhotoClick = () => {
     setIsCameraOpen(true);
+    startCameraStream();
   };
+
+  const handleCancelCamera = () => {
+      setIsCameraOpen(false);
+      stopCameraStream();
+  }
 
   const handleTakePicture = () => {
     if (videoRef.current) {
@@ -174,7 +178,7 @@ export function TagLitterForm() {
         setImagePreview(dataUri);
         setImageDataUri(dataUri);
       }
-      setIsCameraOpen(false);
+      handleCancelCamera();
     }
   };
 
@@ -220,6 +224,7 @@ export function TagLitterForm() {
     setSubmissionStatus("idle");
     setAiResult(null);
     setIsCameraOpen(false);
+    stopCameraStream();
     if(fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -275,7 +280,7 @@ export function TagLitterForm() {
                   <Button type="button" onClick={handleTakePicture} disabled={!hasCameraPermission}>
                     <Camera /> Take Picture
                   </Button>
-                  <Button type="button" variant="secondary" onClick={() => setIsCameraOpen(false)}>
+                  <Button type="button" variant="secondary" onClick={handleCancelCamera}>
                     Cancel
                   </Button>
                 </div>
@@ -355,12 +360,16 @@ export function TagLitterForm() {
                             )}
                         </AlertDescription>
                     </Alert>
-                    {aiResult.cleanupGuidelines && (
+                    {aiResult.cleanupGuidelines && aiResult.cleanupGuidelines.length > 0 && (
                         <Alert variant="default" className="mt-4">
                             <ClipboardCheck className="h-4 w-4" />
                             <AlertTitle>Cleanup Guidelines</AlertTitle>
-                            <AlertDescription className="whitespace-pre-wrap text-foreground">
-                                {aiResult.cleanupGuidelines}
+                            <AlertDescription>
+                                <ul className="list-disc pl-5 space-y-1 text-foreground">
+                                    {aiResult.cleanupGuidelines.map((guideline, index) => (
+                                        <li key={index}>{guideline.replace(/^\d+\.\s*/, '')}</li>
+                                    ))}
+                                </ul>
                             </AlertDescription>
                         </Alert>
                     )}
