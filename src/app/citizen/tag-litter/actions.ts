@@ -1,23 +1,26 @@
 "use server";
 
 import {
-  detectHazardousWaste,
-  type DetectHazardousWasteInput,
-  type DetectHazardousWasteOutput,
+  analyzeWaste,
+  type WasteAnalysisInput,
+  type WasteAnalysisOutput,
 } from "@/ai/flows/hazardous-waste-detection-flow";
 
-export async function checkForHazards(
-  input: DetectHazardousWasteInput
-): Promise<DetectHazardousWasteOutput> {
+export async function analyzeLitterImage(
+  input: WasteAnalysisInput
+): Promise<WasteAnalysisOutput> {
   try {
-    const result = await detectHazardousWaste(input);
+    const result = await analyzeWaste(input);
     return result;
   } catch (error) {
-    console.error("Error in hazardous waste detection flow:", error);
+    console.error("Error in waste analysis flow:", error);
     return {
+      wasteType: "Analysis Failed",
+      description:
+        "AI analysis could not be completed. Please manually enter the details for the report.",
       isHazardous: false,
-      reasoning:
-        "AI analysis could not be completed. Please manually tag if you believe this is hazardous.",
+      recyclingInstructions:
+        "Could not determine waste type.",
       hazardousMaterials: [],
     };
   }

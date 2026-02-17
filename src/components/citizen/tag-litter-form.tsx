@@ -14,14 +14,15 @@ import {
   Trash2,
   CheckCircle2,
   Recycle as RecycleIcon,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { checkForHazards } from "@/app/citizen/tag-litter/actions";
-import type { DetectHazardousWasteOutput } from "@/ai/flows/hazardous-waste-detection-flow";
+import { analyzeLitterImage } from "@/app/citizen/tag-litter/actions";
+import type { WasteAnalysisOutput } from "@/ai/flows/hazardous-waste-detection-flow";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +35,7 @@ export function TagLitterForm() {
   const [description, setDescription] = useState("");
   const [tag, setTag] = useState<Tag | null>(null);
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
-  const [aiResult, setAiResult] = useState<DetectHazardousWasteOutput | null>(null);
+  const [aiResult, setAiResult] = useState<WasteAnalysisOutput | null>(null);
   const [isAnalyzing, startAnalyzing] = useTransition();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -47,19 +48,21 @@ export function TagLitterForm() {
   useEffect(() => {
     if (imageDataUri) {
       startAnalyzing(async () => {
-        const result = await checkForHazards({ photoDataUri: imageDataUri });
+        const result = await analyzeLitterImage({ photoDataUri: imageDataUri });
         setAiResult(result);
+        setDescription(result.description);
         if (result.isHazardous) {
           setTag("hazardous");
-          toast({
-            variant: "destructive",
-            title: "Potential Hazard Detected",
-            description: result.reasoning,
-          });
         }
+        toast({
+            title: `AI Analysis: ${result.wasteType}`,
+            description: result.recyclingInstructions || "Details have been added to your report.",
+            variant: result.isHazardous ? 'destructive' : 'default',
+        });
       });
     }
-  }, [imageDataUri, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageDataUri]);
 
   useEffect(() => {
     const stopCameraStream = () => {
@@ -322,25 +325,33 @@ export function TagLitterForm() {
                   </div>
                 </div>
 
-                {aiResult && aiResult.isHazardous && (
-                  <Alert variant="destructive">
-                    <ShieldAlert className="h-4 w-4" />
-                    <AlertTitle>AI Analysis: Hazardous Material Detected!</AlertTitle>
-                    <AlertDescription>
-                      {aiResult.reasoning}
-                      {aiResult.hazardousMaterials && aiResult.hazardousMaterials.length > 0 && (
-                        <div className="mt-2">
-                          {aiResult.hazardousMaterials.map((mat) => (
-                            <Badge key={mat} variant="destructive" className="mr-1">
-                              {mat}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
+                {isAnalyzing && (
+                    <div className="flex items-center gap-2 text-muted-foreground p-4 bg-muted rounded-md">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>AI is analyzing the image...</span>
+                    </div>
                 )}
 
+                {aiResult && !isAnalyzing && (
+                    <Alert variant={aiResult.isHazardous ? "destructive" : "default"}>
+                        {aiResult.isHazardous ? <ShieldAlert className="h-4 w-4" /> : <Info className="h-4 w-4" />}
+                        <AlertTitle>AI Analysis: {aiResult.wasteType}</AlertTitle>
+                        <AlertDescription>
+                            {aiResult.recyclingInstructions}
+                            {aiResult.isHazardous && aiResult.hazardousMaterials && aiResult.hazardousMaterials.length > 0 && (
+                            <div className="mt-2">
+                                <strong>Identified Hazards: </strong>
+                                {aiResult.hazardousMaterials.map((mat) => (
+                                <Badge key={mat} variant="destructive" className="mr-1">
+                                    {mat}
+                                </Badge>
+                                ))}
+                            </div>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
+                
                 <div>
                   <h3 className="font-semibold mb-2">Location</h3>
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-md text-muted-foreground">
@@ -352,11 +363,12 @@ export function TagLitterForm() {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-2">Additional Details</h3>
+                  <h3 className="font-semibold mb-2">Additional Details (AI Generated)</h3>
                   <Textarea
                     placeholder="Add description (e.g., 'behind the bus stop', 'large pile of plastic bottles')"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
+                    rows={4}
                   />
                 </div>
 
