@@ -1,114 +1,75 @@
 "use client"
 
-import React, { useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import L, { Map } from 'leaflet';
 
-// IMPORTANT: Replace with your actual Google Maps API key.
-// You can get one from the Google Cloud Console.
-const API_KEY = "YOUR_GOOGLE_MAPS_API_KEY_HERE";
+// Leaflet's CSS is included in the root layout (layout.tsx)
+const iconRetinaUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png';
+const iconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
+const shadowUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png';
 
-let scriptLoadingPromise: Promise<void> | null = null;
-
-const loadGoogleMapsScript = (apiKey: string) => {
-  if (window.google && window.google.maps) {
-    return Promise.resolve();
-  }
-
-  if (scriptLoadingPromise) {
-    return scriptLoadingPromise;
-  }
-
-  scriptLoadingPromise = new Promise((resolve, reject) => {
-    const scriptId = 'google-maps-script';
-    const existingScript = document.getElementById(scriptId);
-
-    if (existingScript) {
-        // If script is already loading or loaded, attach to its promise
-        existingScript.addEventListener('load', () => resolve());
-        existingScript.addEventListener('error', (e) => reject(e));
-        return;
-    }
-
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      resolve();
-      scriptLoadingPromise = null;
-    };
-    script.onerror = (error) => {
-      reject(error);
-      scriptLoadingPromise = null;
-      document.getElementById(scriptId)?.remove();
-    };
-
-    document.head.appendChild(script);
-  });
-
-  return scriptLoadingPromise;
-};
-
+// We are keeping the component name as GoogleMap to avoid changing imports in parent components,
+// but the implementation is now using Leaflet and OpenStreetMap.
 export function GoogleMap() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<Map | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (API_KEY === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
-      toast({
-        variant: 'destructive',
-        title: 'Google Maps API Key Missing',
-        description: 'Please add your API key in src/components/shared/google-map.tsx to display the map.',
-        duration: 9000,
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Run only on client and if the container is available
+    if (isClient && mapContainerRef.current && !mapInstanceRef.current) {
+      
+      const DefaultIcon = L.icon({
+          iconRetinaUrl,
+          iconUrl,
+          shadowUrl,
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          popupAnchor: [1, -34],
+          tooltipAnchor: [16, -28],
+          shadowSize: [41, 41]
       });
-      return;
+
+      const map = L.map(mapContainerRef.current).setView([13.0827, 80.2707], 12);
+      mapInstanceRef.current = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      L.marker([13.0827, 80.2707], { icon: DefaultIcon })
+        .addTo(map)
+        .bindPopup("Chennai")
+        .openPopup();
     }
-
-    loadGoogleMapsScript(API_KEY)
-      .then(() => {
-        if (mapRef.current && !mapRef.current.hasChildNodes()) { // Prevent re-initialization
-          const chennai = { lat: 13.0827, lng: 80.2707 };
-          const map = new window.google.maps.Map(mapRef.current, {
-            zoom: 12,
-            center: chennai,
-            disableDefaultUI: true,
-            zoomControl: true,
-          });
-          new window.google.maps.Marker({
-            position: chennai,
-            map: map,
-            title: "Chennai",
-          });
+    
+    // Cleanup map instance on component unmount
+    return () => {
+        if(mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
         }
-      })
-      .catch(() => {
-        toast({
-          variant: 'destructive',
-          title: 'Map Error',
-          description: 'Could not load the Google Map. Check your API key and internet connection.',
-        });
-      });
-  }, [toast]);
+    }
+  }, [isClient]);
 
-  if (API_KEY === "YOUR_GOOGLE_MAPS_API_KEY_HERE") {
+  if (!isClient) {
     return (
-      <Card className="aspect-video w-full flex items-center justify-center bg-muted">
-        <p className="text-muted-foreground p-4 text-center">
-          Google Maps API Key is missing. Please add your key to 
-          <code className="mx-1 p-1 bg-primary/10 rounded-sm">src/components/shared/google-map.tsx</code>
-          to enable the map.
-        </p>
+      <Card className="w-full overflow-hidden shadow-lg">
+        <div className="bg-muted flex items-center justify-center" style={{ height: '500px' }}>
+          <p>Loading map...</p>
+        </div>
       </Card>
     );
   }
 
   return (
-    <Card className="w-full overflow-hidden shadow-lg">
-      <div className="aspect-video w-full bg-muted">
-        <div ref={mapRef} className="w-full h-full" />
-      </div>
+    <Card className="w-full overflow-hidden shadow-lg z-0">
+      <div ref={mapContainerRef} style={{ height: '500px', width: '100%' }}></div>
     </Card>
   );
 }
