@@ -55,6 +55,25 @@ export const alertsData = [
     { id: "HAZ03", type: "Medical Waste", location: "Porur Junction", time: "1 day ago", severity: "Critical" },
 ];
 
+export type CleanupTask = {
+  id: string;
+  reportId: string;
+  location: string;
+  assignedTo: string;
+  status: 'Pending Assignment' | 'In Progress' | 'Completed';
+  priority: 'High' | 'Medium' | 'Low';
+  dateAssigned: string;
+};
+
+export const cleanupTasksData: CleanupTask[] = [
+  { id: "CLN001", reportId: "REP301", location: "Adyar River Bank", assignedTo: "Team A", status: "In Progress", priority: "High", dateAssigned: "2024-05-25" },
+  { id: "CLN002", reportId: "REP302", location: "Mylapore Tank", assignedTo: "Unassigned", status: "Pending Assignment", priority: "Medium", dateAssigned: "2024-05-25" },
+  { id: "CLN003", reportId: "REP007", location: "Velachery Main Road", assignedTo: "Team C", status: "Completed", priority: "High", dateAssigned: "2024-05-24" },
+  { id: "CLN004", reportId: "REP003", location: "Guindy National Park", assignedTo: "Team B", status: "In Progress", priority: "Medium", dateAssigned: "2024-05-23" },
+  { id: "CLN005", reportId: "REP303", location: "Velachery Main Road", assignedTo: "Team C", status: "Completed", priority: "Low", dateAssigned: "2024-05-22" },
+];
+
+
 export const areaChartData = [
   { area: "Adyar", reports: 278, cleaned: 230 },
   { area: "T. Nagar", reports: 189, cleaned: 150 },
