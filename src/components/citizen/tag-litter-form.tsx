@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from "react";
@@ -344,7 +345,7 @@ export function TagLitterForm() {
                             {aiResult.recyclingInstructions}
                             {aiResult.isHazardous && aiResult.hazardousMaterials && aiResult.hazardousMaterials.length > 0 && (
                             <div className="mt-2">
-                                <strong>Identified Hazards: </strong>
+                                <strong>Identified Hazards: </strong> 
                                 {aiResult.hazardousMaterials.map((mat) => (
                                 <Badge key={mat} variant="destructive" className="mr-1">
                                     {mat}
@@ -402,3 +403,5 @@ export function TagLitterForm() {
     </form>
   );
 }
+
+    
