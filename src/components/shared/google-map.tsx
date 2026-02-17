@@ -87,48 +87,36 @@ export function GoogleMap({ reports = [], selectedReportId, onMarkerSelect = () 
       
       import('leaflet').then(L => {
         const map = mapInstanceRef.current!;
-        const currentMarkers = markersRef.current;
         
-        // Get a Set of report IDs for efficient lookup
-        const newReportIds = new Set(reports.map(r => r.id));
+        // Clear existing markers from the map and from our reference
+        Object.values(markersRef.current).forEach(marker => marker.remove());
+        markersRef.current = {};
 
-        // Remove markers that are no longer in the reports list
-        Object.keys(currentMarkers).forEach(markerId => {
-          if (!newReportIds.has(markerId)) {
-            currentMarkers[markerId].remove();
-            delete currentMarkers[markerId];
-          }
-        });
-
-        // Add new markers or update existing ones
+        // Add new markers for the current set of reports
         reports.forEach(report => {
             const isSelected = report.id === selectedReportId;
             const color = pinColors[report.category] || '#71717a'; // default to gray-500
             const icon = createMarkerIcon(L, color, isSelected);
             
-            if (currentMarkers[report.id]) {
-              // Marker exists, just update icon
-              currentMarkers[report.id].setIcon(icon);
-            } else {
-              // Create new marker
-              const marker = L.marker([report.lat, report.lng], { icon })
-                .addTo(map)
-                .bindPopup(`<b>${report.location}</b><br>${report.category}`);
-              
-              marker.on('click', (e) => {
-                  L.DomEvent.stopPropagation(e); // prevent map click event from firing
-                  onMarkerSelect(report);
-                  marker.openPopup();
-              });
+            const marker = L.marker([report.lat, report.lng], { icon })
+              .addTo(map)
+              .bindPopup(`<b>${report.location}</b><br>${report.category}`);
+            
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e); // prevent map click event from firing
+                onMarkerSelect(report);
+                marker.openPopup();
+            });
 
-              markersRef.current[report.id] = marker;
-            }
+            markersRef.current[report.id] = marker;
         });
 
-        // Update popup and pan for selected marker
+        // Pan to selected marker if it exists
         if(selectedReportId && markersRef.current[selectedReportId]) {
             const selectedMarker = markersRef.current[selectedReportId];
-            selectedMarker.openPopup();
+            if (!selectedMarker.isPopupOpen()) {
+                selectedMarker.openPopup();
+            }
             map.panTo(selectedMarker.getLatLng());
         }
       });
