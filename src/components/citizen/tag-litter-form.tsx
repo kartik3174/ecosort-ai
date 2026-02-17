@@ -41,6 +41,7 @@ export function TagLitterForm() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -61,11 +62,17 @@ export function TagLitterForm() {
   }, [imageDataUri, toast]);
 
   useEffect(() => {
-    if (!isCameraOpen) {
-      return;
-    }
+    const stopCameraStream = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+    };
 
-    const getCameraPermission = async () => {
+    const startCameraStream = async () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast({
           variant: "destructive",
@@ -78,6 +85,7 @@ export function TagLitterForm() {
       }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef.current = stream;
         setHasCameraPermission(true);
 
         if (videoRef.current) {
@@ -110,14 +118,14 @@ export function TagLitterForm() {
       }
     };
 
-    getCameraPermission();
+    if (isCameraOpen) {
+      startCameraStream();
+    } else {
+      stopCameraStream();
+    }
 
     return () => {
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach((track) => track.stop());
-        videoRef.current.srcObject = null;
-      }
+      stopCameraStream();
     };
   }, [isCameraOpen, toast]);
 
