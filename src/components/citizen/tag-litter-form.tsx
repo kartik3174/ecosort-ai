@@ -358,10 +358,8 @@ export function TagLitterForm() {
                         <Alert variant="default" className="mt-4">
                             <ClipboardCheck className="h-4 w-4" />
                             <AlertTitle>Cleanup Guidelines</AlertTitle>
-                            <AlertDescription>
-                                <div className="whitespace-pre-wrap text-sm text-foreground">
-                                    {aiResult.cleanupGuidelines}
-                                </div>
+                            <AlertDescription className="whitespace-pre-wrap text-foreground">
+                                {aiResult.cleanupGuidelines}
                             </AlertDescription>
                         </Alert>
                     )}
