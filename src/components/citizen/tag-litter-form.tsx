@@ -88,14 +88,29 @@ export function TagLitterForm() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error accessing camera:", error);
         setHasCameraPermission(false);
         setIsCameraOpen(false);
+        
+        let title = "Camera Error";
+        let description = "An unexpected error occurred while accessing the camera.";
+
+        if (error.name === 'NotAllowedError') {
+            title = "Camera Access Denied";
+            description = "Please enable camera permissions in your browser settings to use this feature.";
+        } else if (error.name === 'NotFoundError') {
+            title = "No Camera Found";
+            description = "We couldn't find a camera on your device. Please connect a camera and try again.";
+        } else if (error.name === 'NotReadableError') {
+            title = "Could Not Access Camera";
+            description = "Could not start video source. The camera might be in use by another application or there might be a hardware issue.";
+        }
+
         toast({
           variant: "destructive",
-          title: "Camera Access Denied",
-          description: "Please enable camera permissions in your browser settings to use this app.",
+          title: title,
+          description: description,
         });
       }
     };
