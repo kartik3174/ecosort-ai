@@ -54,6 +54,8 @@ export function TagLitterForm() {
         setDescription(result.description);
         if (result.isHazardous) {
           setTag("hazardous");
+        } else {
+          setTag("still_there");
         }
         toast({
             title: `AI Analysis: ${result.wasteType}`,
